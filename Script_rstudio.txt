@@ -1,0 +1,870 @@
+########## Packages téléchargés ########## 
+library(readxl) 
+library(graphics)
+library(stats)  
+library(FactoMineR) 
+library(ggplot2)
+#Analyses Discriminantes Linéaires
+library(MASS)   
+library(corrplot)
+library(dplyr)
+library(base)
+library(data.table)
+library(psych)
+library(factoextra)
+
+##################################### MESURE BIAIS EXPERIMENTATEUR ##################################### 
+#################################### Specimen n°286-1-227 (appartient lignée 78) #################################### 
+### Biais expérimental ###
+Biais <- read_excel("D:/Stage_Notocrinus_2024_Louana/RStudio/286_1_227_Tableaux.xlsx",na="NA",sheet = 1)
+Biais
+# Supprimer la première colonne (nombre de mesures réalisées : 30 mesures)
+Biais_subset <- Biais[, -(1)]
+Biais_subset
+
+# Création d'un vecteur numérique 
+Biais_subset_dlb <- sapply(Biais_subset, function(x) as.numeric(unlist(x = Biais_subset)))
+Biais_subset_dlb
+
+#################### Calculs ####################
+# Moyenne
+mean(Biais_subset_dlb)
+# [1] 6.766775
+# Médiane
+median(Biais_subset_dlb)
+# [1] 2.2
+# Variance 
+var(Biais_subset_dlb)
+# Summary 
+summary(Biais_subset_dlb)
+
+# Intervalle de confiance à 95%
+mean_data <- mean( Biais_subset_dlb)
+sd_data <- sd(Biais_subset_dlb)
+n <- length(Biais_subset_dlb)
+# Erreur standard
+se <- sd_data/sqrt(n)
+# Définir le niveau de confiance à 95%
+alpha <- 0.05
+# Valeur critique (de la distribution t de Student (pour 95%)
+t_critical <- qt(1-alpha/2,df=n-1)
+# Marge d'erreur
+margin_of_error <- t_critical*se
+# Intervalle de confiance
+lowerbound <- mean_data - margin_of_error
+upperbound <- mean_data + margin_of_error
+cat("Intervalle de confiance à 95% : [", lowerbound,",",upperbound,"]\n")
+# Intervalle de confiance à 95% : [6.665037 , 6.868513]
+
+### Calcul erreur standard : Mesurer la disperion avec précision des moyennes d'échantillon de l'individu ### 
+# Créer la fonction : Erreur standard #
+# Ecart-type = sd()
+# Racine carré = sqrt ()
+# Longueur vecteur = lenght ()
+err.std <- function(vecteur) {sd(vecteur)/sqrt(length(vecteur))}
+err.std(Biais_subset_dlb)
+# [1] 0.0519073
+# Petite erreur standard : les valeurs de moyennes de mesures du spécimen sont proche de la moyenne
+# Les données de l'échantillon sont assez représentatif de la population (peu de variabilité)
+
+# Ecart-type 
+sd_all_biais <- sd(Biais_subset_dlb, na.rm = TRUE)
+print(paste("Écart-type:", sd_all_biais))
+#[1] "Écart-type: "Écart-type: 1.57093663789808"
+# L'écart-type est une mesure de la dispersion des valeurs par rapport à la moyenne
+# Plus l'écart-type est élevé, plus les valeurs sont dispersées autour de la moyenne
+# 1.57 indique une certainbe variabilité dans les données
+
+# Représentativité de l'échantillon
+# Calcul du nombre total de valeurs
+n_Biais <- length(Biais_subset)
+print(paste("Taille de l'échantillon:", n_Biais))
+#[1] "Taille de l'échantillon: 53"
+# 4059 observations dans le jeu de données
+# Taille convenables (taille d'échantillon plus grande augmente la précision des estimations statistiques)
+
+#################### Analyses Univariées du fichier du biais expérimentateur #################### 
+# Histogrammes 
+# Repérer les valeurs qui sortent du lot 
+# Cirre et cirrals #
+hist(Biais$Lcir, col="red",freq = F,main = "Histogramme de la longueur de la cirre",xlab = "Lcir", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$Lcal1, col="red",freq = F,main = "Histogramme de la longueur du premier cirral",xlab = "Lcal1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Valeur abberrante sur Lcal1 : sur 9ème et 21ème mesure (1.20)
+hist(Biais$Wcal1, col="red",freq = F,main = "Histogramme de la largueur du premier cirral",xlab = "Wcal1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$Lcallg, col="red",freq = F,main = "Histogramme de la longueur du cirral le plus long",xlab = "Lcallg", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Lcallg : 1.5 ou 1.6 (logique quand mesurer car 2 graduations ressortait)
+hist(Biais$Wcallg, col="red",freq = F,main = "Histogramme de la largueur du cirral le plus long",xlab = "Wcallg", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+# Centrodorsale #
+hist(Biais$Hrad, col="red",freq = F,main = "Histogramme de la hauteur radiaire de la centrodorsale",xlab = "Hrad", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Hrad : 30ème mesure (8.3)
+hist(Biais$Hinterad, col="red",freq = F,main = "Histogramme de la hauteur interadiaire de la centrodorsale",xlab = "Hinterad", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Valeur abberrante (8.5) la 21ème mesure
+hist(Biais$Dprox, col="red",freq = F,main = "Histogramme du diamètre proximal de la centrodorsale",xlab = "Dprox", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$Dapex, col="red",freq = F,main = "Histogramme du diamètre de l'apex de la centrodorsale",xlab = "Dapex", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Valeur abberrante : 3.75 la 2ème mesure 
+# Radiale #
+hist(Biais$Wrdle, col="red",freq = F,main = "Histogramme de la largueur de la radiale",xlab = "Wrdle", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Valeur abberrante : 3.4 la 19ème mesure
+
+# Première brachiale 1 : Ibr1 #
+hist(Biais$LinteradG, col="red",freq = F,main = "Histogramme de la longueur gauche interadiaire de Ibr1",xlab = "LinteradG", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$LinteradD, col="red",freq = F,main = "Histogramme de la longueur droite interadiaire de Ibr1",xlab = "LinteradD", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$Lrad, col="red",freq = F,main = "Histogramme de la longueur de Ibr1",xlab = "Lrad", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$WIbr1, col="red",freq = F,main = "Histogramme de la largueur de Ibr1",xlab = "WIbr1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+
+# Première brachiale 2 : Ibr2 ou Axillaire #
+hist(Biais$WIbr2, col="red",freq = F,main = "Histogramme de la largueur de l'axillaire",xlab = "WIbr2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$LIbr2, col="red",freq = F,main = "Histogramme de la longueur de l'axillaire",xlab = "LIbr2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+
+# Seconde brachiale #
+#Br1
+hist(Biais$WIIbr1, col="red",freq = F,main = "Histogramme de la largueur de IIbr1",xlab = "WIIbr1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$LIIbr1, col="red",freq = F,main = "Histogramme de la longueur de IIbr1",xlab = "LIIbr1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Valeur abberrante : 0.5 la 29ème mesure
+#Br2
+hist(Biais$WIIbr2, col="red",freq = F,main = "Histogramme de la largueur de IIbr2",xlab = "WIIbr2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Valeur abberrante : 6.7 mesure 9 et 10.
+hist(Biais$LIIbr2, col="red",freq = F,main = "Histogramme de la longueur de IIbr2",xlab = "LIIbr2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Br3
+hist(Biais$WIIbr3, col="red",freq = F,main = "Histogramme de la largueur de IIbr3",xlab = "WIIbr3", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$LIIbr3, col="red",freq = F,main = "Histogramme de la longueur de IIbr3",xlab = "LIIbr3", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Br4
+hist(Biais$WIIbr4, col="red",freq = F,main = "Histogramme de la largueur de IIbr4",xlab = "WIIbr4", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$LIIbr4, col="red",freq = F,main = "Histogramme de la longueur de IIbr4",xlab = "LIIbr4", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Br5
+hist(Biais$WIIbr5, col="red",freq = F,main = "Histogramme de la largueur de IIbr5",xlab = "WIIbr5", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$LIIbr5, col="red",freq = F,main = "Histogramme de la longueur de IIbr5",xlab = "LIIbr5", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Br6
+hist(Biais$WIIbr6, col="red",freq = F,main = "Histogramme de la largueur de IIbr6",xlab = "WIIbr6", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$LIIbr6, col="red",freq = F,main = "Histogramme de la longueur de IIbr6",xlab = "LIIbr6", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Br7
+hist(Biais$WIIbr7, col="red",freq = F,main = "Histogramme de la largueur de IIbr7",xlab = "WIIbr7", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$LIIbr7, col="red",freq = F,main = "Histogramme de la longueur de IIbr7",xlab = "LIIbr7", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Br8
+hist(Biais$WIIbr8, col="red",freq = F,main = "Histogramme de la largueur de IIbr8",xlab = "WIIbr8", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#abbérente (faible) : 2.5 la 20ème mesure
+hist(Biais$LIIbr8, col="red",freq = F,main = "Histogramme de la longueur de IIbr8",xlab = "LIIbr8", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+
+# Pinnules #
+#P1
+hist(Biais$LP1, col="red",freq = F,main = "Histogramme de la longueur de la pinnule 1",xlab = "LP1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$W1Pi1, col="red",freq = F,main = "Histogramme de la largueur du premier pinnulaire de la pinnule 1",xlab = "W1Pi1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$L1Pi1, col="red",freq = F,main = "Histogramme de la longueur du premier pinnulaire de la pinnule 1",xlab = "L1Pi1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#P2
+hist(Biais$LP2, col="red",freq = F,main = "Histogramme de la longueur de la pinnule 2",xlab = "LP2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$W1Pi2, col="red",freq = F,main = "Histogramme de la largueur du premier pinnulaire de la pinnule 2",xlab = "W1Pi2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$L1Pi2, col="red",freq = F,main = "Histogramme de la longueur du premier pinnulaire de la pinnule 2",xlab = "L1Pi2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#P3
+hist(Biais$LP3, col="red",freq = F,main = "Histogramme de la longueur de la pinnule 3",xlab = "LP3", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$W1Pi3, col="red",freq = F,main = "Histogramme de la largueur du premier pinnulaire de la pinnule 3",xlab = "W1Pi3", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$L1Pi3, col="red",freq = F, main = "Histogramme de la longueur du premier pinnulaire de la pinnule 3",xlab = "L1Pi3", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#P4
+hist(Biais$LP4, col="red",freq = F,main = "Histogramme de la longueur de la pinnule 4",xlab = "LP4", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$W1Pi4, col="red",freq = F,main = "Histogramme de la largueur du premier pinnulaire de la pinnule 4",xlab = "W1Pi4", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Valeur abberrante : 0.8 la cinqiuème mesure
+hist(Biais$L1Pi4, col="red",freq = F,main = "Histogramme de la longueur du premier pinnulaire de la pinnule 4",xlab = "L1Pi4", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#P5
+hist(Biais$LP5, col="red",freq = F,main = "Histogramme de la longueur de la pinnule 5",xlab = "LP5", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$W1Pi5, col="red",freq = F,main = "Histogramme de la largueur du premier pinnulaire de la pinnule 5",xlab = "W1Pi5", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Valeur abberrante largueur (1.60) la 4ème mesure 
+hist(Biais$L1Pi5, col="red",freq = F,main = "Histogramme de la longueur du premier pinnulaire de la pinnule 5",xlab = "L1Pi5", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Pmédiane
+hist(Biais$LPmed, col="red",freq = F,main = "Histogramme de la longueur de la pinnule médiane",xlab = "LPmed", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$W1Pimed, col="red",freq = F,main = "Histogramme de la largueur du premier pinnulaire de la pinnule médiane",xlab = "W1Pimed", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$L1Pimed, col="red",freq = F,main = "Histogramme de la longueur du premier pinnulaire de la pinnule médiane",xlab = "L1Pimed", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Pdistale
+hist(Biais$LPdis, col="red",freq = F,main = "Histogramme de la longueur de la pinnule distale",xlab = "LPdis", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$W1Pidis, col="red",freq = F,main = "Histogramme de la largueur du premier pinnulaire de la pinnule distale",xlab = "W1Pidis", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Biais$L1Pidis, col="red",freq = F,main = "Histogramme de la longueur du premier pinnulaire de la pinnule distale",xlab = "L1Pidis", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+
+
+
+##################################### JEUX DE DONNEES : 108 SPECIMENS DONT 99 SANS NA ##################################### 
+#################################### Fichier Excel : 'Matrice' #################################### 
+### Variables continues sans données manquantes (NA)###
+Matrice <- read_excel("D:/Stage_Notocrinus_2024_Louana/RStudio/Matrice.xlsx",na="NA",sheet = 1)
+Matrice
+Matrice_subset <- Matrice[, -(1:3)]
+Matrice_subset
+
+str(Matrice_subset)
+# Création d'un vecteur numérique 
+Matrice_subset <- sapply(Matrice_subset, function(x) as.numeric(unlist(x = Matrice_subset)))
+Matrice_subset
+
+######################## Calculs chaque variables continues ######################## 
+### Moyenne variables continues
+## Dprox
+mean(Matrice$Dprox)
+#6.468687
+# G51
+mean(Matrice[1:27,]$Dprox)
+#7.145926
+# G135
+mean(Matrice[29:57,]$Dprox)
+#5.512414
+# G78
+mean(Matrice[62:80,]$Dprox)
+#8.226316
+# G23
+mean(Matrice[83:99,]$Dprox)
+#5.188235
+
+## Hrad
+mean(Matrice$Hrad)
+#5.341212
+# G51
+mean(Matrice[1:27,]$Hrad)
+#5.863704
+# G135
+mean(Matrice[29:57,]$Hrad)
+#4.636552
+# G78
+mean(Matrice[62:80,]$Hrad)
+#6.778947
+# G23
+mean(Matrice[83:99,]$Hrad)
+#3.964706
+
+## Hinterad
+mean(Matrice$Hinterad)
+#5.976061
+# G51
+mean(Matrice[1:27,]$Hinterad)
+#6.579259
+# G135
+mean(Matrice[29:57,]$Hinterad)
+#5.106552
+# G78
+mean(Matrice[62:80,]$Hinterad)
+#7.684211
+# G23
+mean(Matrice[83:99,]$Hinterad)
+#4.435294
+
+### Variances variables continues 
+## Dprox
+var(Matrice$Dprox)
+#2.760318
+# G51
+var(Matrice[1:27,]$Dprox)
+#2.192794
+# G135
+var(Matrice[29:57,]$Dprox)
+#1.650576
+# G78
+var(Matrice[62:80,]$Dprox)
+#1.049825
+# G23
+var(Matrice[83:99,]$Dprox)
+#1.099853
+
+## Hrad
+var(Matrice$Hrad)
+#2.457335
+# G51
+var(Matrice[1:27,]$Hrad)
+#1.809724
+# G135
+var(Matrice[29:57,]$Hrad)
+#1.760709
+# G78
+var(Matrice[62:80,]$Hrad)
+#1.400643
+# G23
+var(Matrice[83:99,]$Hrad)
+#0.7274265
+
+## Ecart-type 
+# Dprox
+sd(Matrice$Dprox)
+#1.66142
+# G51
+sd(Matrice[1:27,]$Dprox)
+#1.480809
+# G135
+sd(Matrice[29:57,]$Dprox)
+#1.284747
+# G78
+sd(Matrice[62:80,]$Dprox)
+#1.024609
+# G23
+sd(Matrice[83:99,]$Dprox)
+#1.048739
+
+# Hrad
+sd(Matrice$Hrad)
+# 1.567589
+# G51
+sd(Matrice[1:27,]$Hrad)
+#1.34526
+# G135
+sd(Matrice[29:57,]$Hrad)
+#1.326917
+# G78
+sd(Matrice[62:80,]$Hrad)
+#1.183488
+# G23
+sd(Matrice[83:99,]$Hrad)
+#0.852893
+
+
+######################## Calculs du jeu de données ######################## 
+# Moyenne
+mean(Matrice_subset)
+# [1] 2.132853
+# Médiane
+median(Matrice_subset)
+# [1] 1.5
+# Variance 
+var(Matrice_subset)
+# Summary 
+summary(Matrice_subset)
+# Ecart-type 
+sd_all_values <- sd(all_values, na.rm = TRUE)
+print(paste("Écart-type:", sd_all_values))
+#[1] "Écart-type: 1.57099404360621"
+# L'écart-type est une mesure de la dispersion des valeurs par rapport à la moyenne
+# Plus l'écart-type est élevé, plus les valeurs sont dispersées autour de la moyenne
+# 1.57 indique une certainbe variabilité dans les données
+# Calcul de la variance = la somme des carrés des différences entre chaque valeurs et la moyenne divisé par n ou n-1
+var_all_values <- var(all_values, na.rm = TRUE)
+print(paste("Variance:", var_all_values))
+#[1] "Variance: 2.46802228504618"
+# La variance est l'écart-type au carré (dispersion des données) 
+# Variance élevée (2.46) indique une plus grande dispersion des valeurs par rapport à la moyenne (2.13)
+# Représentativité de l'échantillon
+# Calcul du nombre total de valeurs
+n_All <- length(all_values)
+print(paste("Taille de l'échantillon:", n_All))
+#[1] "Taille de l'échantillon: 4059"
+# 4059 observations dans le jeu de données
+# Taille convenables (taille d'échantillon plus grande augmente la précision des estimations statistiques)
+
+# Intervalle de confiance
+# Définir le niveau de confiance à 95%
+alpha <- 0.05
+
+# Calcul de la valeur critique de la distribution t de Student
+t_critical_all <- qt(1 - alpha / 2, df = n_All - 1)
+print(paste("Valeur critique t:", t_critical_all))
+#[1] "Valeur critique t: 1.96054874721252"
+# La valeur critique t est utilisée pour calculer l'intervalle de confiance (95%)
+# pour calculer IC
+
+# Calcul de la marge d'erreur
+margin_of_error <- t_critical_all * se_all
+print(paste("Marge d'erreur:", margin_of_error))
+#[1] "Marge d'erreur: 0.0483440085292442"
+#Calculée en multipliant la valeur critique t par l'erreur standard 
+#Elle représente la précision de l'estimation de la moyenne
+#Indique la moyenne estimée pourrait différer de la vraie moyenne de la population
+
+
+# Calcul des bornes de l'intervalle de confiance
+lower_bound <- mean_all_values - margin_of_error
+upper_bound <- mean_all_values + margin_of_error
+print(paste("Intervalle de confiance à 95%:", lower_bound, "à", upper_bound))
+#[1] "Intervalle de confiance à 95%: 2.08497700649909 à 2.18166502355758"
+#IC de 95% de 2.084977 à 2.181665 : On est 95% certain que la véritable moyenne de la population se situe dans cet intervalle
+# IC 95% calculé :  [Moyenne - Marge d'erreur, Moyenne + Marge d'erreur]
+# IC à 95% pour la moyenne est [2.13332101502833 - 0.0483440085292442, 2.13332101502833 + 0.0483440085292442]
+#soit environ [2.084977, 2.181665]
+#raisonnablement confiant à 95% que la vraie moyenne de la population se situe quelque part entre 2.084977 et 2.181665
+# Intervalle de confiance à 95%
+mean_data <- mean( Matrice_subset)
+sd_data <- sd(Matrice_subset)
+n <- length(Matrice_subset)
+# Erreur standard
+se <- sd_data/sqrt(n)
+# Définir le niveau de confiance à 95%
+alpha <- 0.05
+# Valeur critique (de la distribution t de Student (pour 95%)
+t_critical <- qt(1-alpha/2,df=n-1)
+# Marge d'erreur
+margin_of_error <- t_critical*se
+# Intervalle de confiance
+lowerbound <- mean_data - margin_of_error
+upperbound <- mean_data + margin_of_error
+cat("Intervalle de confiance à 95% : [", lowerbound,",",upperbound,"]\n")
+# Intervalle de confiance à 95% : [2.125305 , 2.140401]
+
+### Calcul erreur standard : Mesurer la disperion avec précision des moyennes d'échantillon de l'individu ### 
+# Créer la fonction : Erreur standard #
+# Ecart-type = sd()
+# Racine carré = sqrt ()
+# Longueur vecteur = lenght ()
+err.std <- function(vecteur) {sd(vecteur)/sqrt(length(vecteur))}
+err.std(Matrice_subset)
+# [1] 0.003850855
+# Petite erreur standard : les valeurs de moyennes des mesures des lignées sont proche de la moyenne
+# Les données de l'échantillon sont assez représentatif de la population (peu de variabilité)
+# L'erreur standard est une mesure de la précision de l'estimation de la moyenne
+# Calculer comme l'écart-type divisé par la racine carrée de la taille de l'échantillon
+# L'erreur standard est faible (0.02) plus la moyenne estimée est précise
+
+
+# Ces statistiques fournissent :
+# La distribution des données de la centralité (moyenne, médiane)
+# La dispersion (écart-type, variance)
+# La précision de l'estimation de la moyenne (erreur standard et intervalle de confiance)
+
+#Test de normalité 
+# Shapiro-Wilk
+shapiro.test(rnorm(5000, mean = 2.12, sd = 1.57))
+#Shapiro-Wilk normality test
+
+#data:  rnorm(5000, mean = 2.12, sd = 1.57)
+#W = 0.99972, p-value = 0.7712
+
+
+windows()
+##################### Analyses univariées##################### 
+###### Histogrammes ######
+#Déterminer les valeurs érronées du fichier "Matrice"
+###Cirre###
+boxplot(Matrice$Lcal1, main = "Boxplot Lcal1 du jeux de données", col = "firebrick3", names = c("Lcal1"))
+hist(Matrice$Lcal1, col="red",freq = F, main = "Histogramme de la longueur du premier cirral",xlab = "Lcal1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Outlier : Nv_350_1736_COI (2.10)
+hist(Matrice$Wcal1, col="red",freq = F,main = "Histogramme de la largeur du premier cirral",xlab = "Wcal1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$Lcallg, col="red",freq = F,main = "Histogramme de la longueur du cirral le plus long",xlab = "Lcallg", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$Wcallg, col="red",freq = F,main = "Histogramme de la largeur du cirral le plus long",xlab = "Wcallg", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+
+###Centrodorsale###
+windows()
+hist(Matrice$Hrad, col="red",freq = F,main = "Histogramme de la hauteur radiaire de la centrodorsale",xlab = "Hrad", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$Hinterad, col="red",freq = F,main = "Histogramme de la hauteur interradiaire de la centrodorsale",xlab = "Hinterad", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$Dprox, col="red",freq = F,main = "Histogramme du diamètre proximal de la centrodorsale",xlab = "Dprox", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$Dapex, col="red",freq = F,main = "Histogramme du diamètre de l'apex de la centrodorsale",xlab = "Dapex", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+boxplot(Matrice$Dapex, main = "Boxplot Dapex du jeux de données", col = "firebrick3", names = c("Lcal1"))
+#Outlier : EWS-EM-Nv561 (2.40)
+###Radiale###
+hist(Matrice$Wrdle, col="red",freq = F,main = "Histogramme de la largeur de la radiale",xlab = "Wrdle", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+
+###Ibr1###
+hist(Matrice$LinteradG, col="red",freq = F,main = "Histogramme de la longueur interradiaire gauche de Ibr1",xlab = "LinteradG", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$Lrad, col="red",freq = F,main = "Histogramme de la longueur radiaire de Ibr1",xlab = "Lrad", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$LinteradD, col="red",freq = F,main = "Histogramme de la longueur interradiaire droite de Ibr1",xlab = "LinteradD", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$WIbr1, col="red",freq = F,main = "Histogramme de la largeur de Ibr1",xlab = "WIbr1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+
+###Ibr2 ou Axillaire###
+hist(Matrice$WIbr2, col="red",freq = F,main = "Histogramme de la largeur de Ibr2",xlab = "WIbr2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$LIbr2, col="red",freq = F,main = "Histogramme de la longueur de Ibr2",xlab = "LIbr2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+
+###Brachiales###
+### Br1
+hist(Matrice$WIIbr1, col="red",freq = F,main = "Histogramme de la largeur de WIIbr1",xlab = "WIIbr1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$LIIbr1, col="red",freq = F,main = "Histogramme de la longueur de LIIbr1",xlab = "LIIbr1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+boxplot(Matrice$LIIbr1, main = "Boxplot LIIbr1 du jeux de données", col = "firebrick3", names = c("LIIbr1"),col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Outlier : Nv_354_1736_COI (2)
+### Br 2
+hist(Matrice$WIIbr2, col="red",freq = F,main = "Histogramme de la largeur de WIIbr2",xlab = "WIIbr2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$LIIbr2, col="red",freq = F,main = "Histogramme de la largeur de LIIbr2",xlab = "LIIbr2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+### Br 3
+hist(Matrice$WIIbr3, col="red",freq = F,main = "Histogramme de la largeur de WIIbr3",xlab = "WIIbr3", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$LIIbr3, col="red",freq = F,main = "Histogramme de la longueur de LIIbr3",xlab = "LIIbr3", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+### Br 4
+hist(Matrice$WIIbr4, col="red",freq = F,main = "Histogramme de la largeur de WIIbr4",xlab = "WIIbr4", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$LIIbr4, col="red",freq = F,main = "Histogramme de la longueur de LIIbr4",xlab = "LIIbr4", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+### Br5
+hist(Matrice$WIIbr5, col="red",freq = F,main = "Histogramme de la largeur de WIIbr5",xlab = "WIIbr5", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$LIIbr5, col="red",freq = F,main = "Histogramme de la longueur de LIIbr5",xlab = "LIIbr5", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+### Br6
+hist(Matrice$WIIbr6, col="red",freq = F,main = "Histogramme de la largeur de WIIbr6",xlab = "WIIbr6", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$LIIbr6, col="red",freq = F,main = "Histogramme de la longueur de LIIbr6",xlab = "LIIbr6", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+### Br7
+hist(Matrice$WIIbr7, col="red",freq = F,main = "Histogramme de la largeur de WIIbr7",xlab = "WIIbr7", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$LIIbr7, col="red",freq = F,main = "Histogramme de la longueur de LIIbr7",xlab = "LIIbr7", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+### Br8
+hist(Matrice$WIIbr8, col="red",freq = F,main = "Histogramme de la largeur de WIIbr8",xlab = "WIIbr8", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$LIIbr8, col="red",freq = F,main = "Histogramme de la longueur de LIIbr8",xlab = "LIIbr8", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+
+###Pinnules###
+### P1
+windows()
+hist(Matrice$W1Pi1, col="red",freq = F,main = "Histogramme de la largeur de la première pinnule",xlab = "W1Pi1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$L1Pi1, col="red",freq = F,main = "Histogramme de la longueur de la première pinnule",xlab = "L1Pi1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+### P2
+hist(Matrice$W1Pi2, col="red",freq = F,main = "Histogramme de la largeur de la deuxième pinnule",xlab = "W1Pi2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$L1Pi2, col="red",freq = F,main = "Histogramme de la longueur de la deuxième pinnule",xlab = "L1Pi2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+### P3
+windows()
+hist(Matrice$W1Pi3, col="red",freq = F,main = "Histogramme de la largeur de la troisième pinnule",xlab = "W1Pi3", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Outlier : EWS-EM-Nv243 (1.70)
+boxplot(Matrice$W1Pi3, main = "Boxplot W1Pi3 du jeux de données", col = "firebrick3", names = c("W1Pi3"))
+hist(Matrice$L1Pi3, col="red",freq = F,main = "Histogramme de la longueur de la troisième pinnule",xlab = "L1Pi3", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+### P4
+hist(Matrice$W1Pi4, col="red",freq = F,main = "Histogramme de la largeur de la quatrième pinnule",xlab = "W1Pi4", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$L1Pi4, col="red",freq = F,main = "Histogramme de la longueur de la quatrième pinnule",xlab = "L1Pi4", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+### P5
+hist(Matrice$W1Pi5, col="red",freq = F,main = "Histogramme de la largeur de la cinquième pinnule",xlab = "W1Pi5", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+hist(Matrice$L1Pi5, col="red",freq = F,main = "Histogramme de la longueur de la cinquième pinnule",xlab = "L1Pi5", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+
+# Bivariées : relation
+#Plot sans le rapport (var/Taille) pour enlever l'allométrie : Ncal
+#WIIbr1
+plot(Matrice_subset$Dprox,Matrice_subset$WIIbr1,col= as.numeric(Matrice$Groupes),title("largeur de IIbr1 en fonction de la taille (Dprox)"),ylab = "Largeur de IIbr1 (WIIbr1)", xlab = "Dprox (Taille en mm)  ", pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="bottomright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+#WIIbr1
+plot(Global$Dprox,Global$LP1,col= as.numeric(Global$Groupes),title("longueur pinnule 1 en fonction de la taille (Dprox)"),ylab = "Longueur pinnule 1 (LP1)", xlab = "Dprox (Taille en mm)  ", pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="bottomright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+
+#Voir la réparition des variables discrètes dans la population : chercher des valeurs abberentes 
+Variables_discrètes <- read_excel("D:/Stage_Notocrinus_2024_Louana/RStudio/Global.xlsx",na="NA",sheet = 1)
+Variables_discrètes
+###Ncir###
+hist(Variables_discrètes$Ncir,breaks = 150, col="red",freq = F,main = "Histogramme du nombre de cirres",xlab = "Ncir", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#Plot avec le rapport (Var/Taille; c'est avec l'allométrie)
+plot(Variables_discrètes$Dprox,Variables_discrètes$Ncir/Variables_discrètes$Dprox,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de cirres en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+#Plot sans le rapport (var/Taille) pour enlever l'allométrie : Ncir
+plot(Variables_discrètes$Dprox,Variables_discrètes$Ncir,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de cirres en fonction de la taille (Dprox)"),ylab = "Nombre de cirres (Ncir)", xlab = "Dprox (Taille en mm) ", pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright",legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+###Ncal###
+hist(Variables_discrètes$Ncal, breaks = 50, col="red",freq = F,main = "Histogramme du nombre de cirrals",xlab = "Ncal", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+plot(Variables_discrètes$Dprox,Variables_discrètes$Ncal/Variables_discrètes$Dprox,col= as.numeric(Variables_discrètes$Groupes), title("Nombre de cirrals en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes))
+#Nv_331_1865_COI 80 cirrals et RSCHMNA18586Notocrinus 17 cirrals
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+windows()
+#Plot sans le rapport (var/Taille) pour enlever l'allométrie : Ncal
+plot(Variables_discrètes$Dprox,Variables_discrètes$Ncal,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de cirrals d'un cirre en fonction de la taille (Dprox)"),ylab = "Nombre de cirrals (Ncal)", xlab = "Dprox (Taille en mm)  ", pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+###NPiP1###
+windows()
+hist(Variables_discrètes$`NPiP1 `,breaks = 50, col="red",freq = F,main = "Histogramme du nombre de pinnulaires sur la pinnule 1",xlab = "NPiP1", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+plot(Variables_discrètes$Dprox,Variables_discrètes$`NPiP1 `/Variables_discrètes$Dprox,col= as.numeric(Variables_discrètes$Groupes),title(" Nombre de pinnulaires sur la pinnule 1 en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+#TANv468Notocrinus 21 N1Pi1 et 1410_CO1 9 N1Pi1
+#Plot sans le rapport (var/Taille) pour enlever l'allométrie : NPiP1
+plot(Variables_discrètes$Dprox,Variables_discrètes$`NPiP1 `,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de pinnulaires sur la pinnule 1 en fonction de la taille (Dprox)"),ylab = "Nombre de pinnulaires (N1Pi1)", xlab = "Dprox (Taille en mm)  ", pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+# Variables Continues : bivariés
+#LP1
+plot(Global$Dprox,Global$Lcir,col= as.numeric(Global$Groupes),title("Longueur de la pinnule 1 en fonction de la taille (Dprox)"),ylab = "Longueur de la pinnule 1 (LP1)", xlab = "Dprox (Taille en mm)  ", pch=as.character(Global$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+windows()
+#Hrad
+plot(Global$Dprox,Global$Hrad,col= as.numeric(Global$Groupes),title("Hauteur radiaire en fonction de la taille (Dprox)"),ylab = "Hauteur radiaire (Hrad)", xlab = "Dprox (Taille en mm)  ", pch=as.character(Global$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="bottomright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+#Hinterad
+plot(Global$Dprox,Global$Hinterad,col= as.numeric(Global$Groupes),title("Hauteur interradiaire en fonction de la taille (Dprox)"),ylab = "Hauteur interradiaire (Hinterad)", xlab = "Dprox (Taille en mm)  ", pch=as.character(Global$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="bottomright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+
+
+###NPiP2###
+hist(Variables_discrètes$NPiP2,breaks = 50, col="red",freq = F,main = "Histogramme du nombre de pinnulaires sur la pinnule 2",xlab = "NPiP2", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+plot(Variables_discrètes$Dprox,Variables_discrètes$NPiP2/Variables_discrètes$Dprox,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de pinnulaires sur la pinnule 2 en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+windows()
+#TANv468Notocrinus 21 N1Pi1 et 1410_CO1 9 N1Pi1
+#Plot sans le rapport (var/Taille) pour enlever l'allométrie : NPiP2
+plot(Variables_discrètes$Dprox,Variables_discrètes$NPiP2,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de Nombre de pinnulaires sur la pinnule 2 en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+
+###NPiP3###
+hist(Variables_discrètes$NPiP3,breaks = 50, col="red",freq = F,main = "Histogramme du nombre de pinnulaires sur la pinnule 3",xlab = "NPiP3", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+plot(Variables_discrètes$Dprox,Variables_discrètes$NPiP3/Variables_discrètes$Dprox,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de pinnulaires sur la pinnule 3 en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#TANv466Notocrinus 28 N1Pi3
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+#Plot sans le rapport (var/Taille) pour enlever l'allométrie : NPiP3
+plot(Variables_discrètes$Dprox,Variables_discrètes$NPiP3,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de Nombre de pinnulaires sur la pinnule 3 en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+###NPiP4###
+hist(Variables_discrètes$NPiP4,breaks = 50, col="red",freq = F,main = "Histogramme du nombre de pinnulaires sur la pinnule 4",xlab = "NPiP4", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#	Nv_24_1865_COI 24 N1Pi4
+plot(Variables_discrètes$Dprox,Variables_discrètes$NPiP4/Variables_discrètes$Dprox,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de pinnulaires sur la pinnule 4 en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+#Plot sans le rapport (var/Taille) pour enlever l'allométrie : NPiP4
+plot(Variables_discrètes$Dprox,Variables_discrètes$NPiP4,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de Nombre de pinnulaires sur la pinnule 4 en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+
+###NPiP5###
+hist(Variables_discrètes$NPiP5,breaks = 50, col="red",freq = F,main = "Histogramme du nombre de pinnulaires sur la pinnule 5",xlab = "NPiP5", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#	Nv_24_1865_COI 25 NPiP5
+plot(Variables_discrètes$Dprox,Variables_discrètes$NPiP5/Variables_discrètes$Dprox,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de pinnulaires sur la pinnule 5 en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+#Plot sans le rapport (var/Taille) pour enlever l'allométrie : NPiP5
+plot(Variables_discrètes$Dprox,Variables_discrètes$NPiP5,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de Nombre de pinnulaires sur la pinnule 5 en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+
+
+###NPiPmed###
+hist(Variables_discrètes$NPiPmed,breaks = 50, col="red",freq = F,main = "Histogramme du nombre de pinnulaires sur la pinnule médiane",xlab = "NPiPmed", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#	Nv_24_1865_COI 29 NPiPmed
+plot(Variables_discrètes$Dprox,Variables_discrètes$NPiPmed/Variables_discrètes$Dprox,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de pinnulaires sur la pinnule médiane en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+#Plot sans le rapport (var/Taille) pour enlever l'allométrie : NPiPmed
+plot(Variables_discrètes$Dprox,Variables_discrètes$NPiPmed,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de Nombre de pinnulaires sur la pinnule médiane en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+
+###NPiPdis###
+hist(Variables_discrètes$NPiPdis, breaks = 50,col="red",freq = F,main = "Histogramme du nombre de pinnulaires sur la pinnule distale",xlab = "NPiPdis", ylab = "Fréquence",col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+#	Nv_24_1865_COI 36 NPiPdis
+plot(Variables_discrètes$Dprox,Variables_discrètes$NPiPdis/Variables_discrètes$Dprox,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de pinnulaires sur la pinnule distale en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+#Plot sans le rapport (var/Taille) pour enlever l'allométrie : NPiPdis
+plot(Variables_discrètes$Dprox,Variables_discrètes$NPiPdis,col= as.numeric(Variables_discrètes$Groupes),title("Nombre de Nombre de pinnulaires sur la pinnule distale en fonction de la taille (Dprox)"), pch=as.character(Variables_discrètes$Groupes),col.main="black",col.lab="black",col.sub="black",col.main="black",col.lab="black",col.sub="black",cex.main=1.5,cex.lab=1, cex.sub=1,font.main=4,font.lab=4, font.sub=4)
+legend(x="topright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+
+##################### Analyses bivariées##################### 
+################### Fichier Excel : Matrice ################### 
+################ Variables continues sans NA################ 
+
+##########################################Sur le fichier "Matrice" ayant que des variables continues et sans NA
+#Enlever les trois premières colonnes 
+Matrice_subset <- Matrice[, -(1:3)]
+Matrice_subset
+
+#Taille isométrique
+Matrice_subset_means <- geometric.mean(Matrice_subset)
+Matrice_subset_means_T <- (Matrice_subset / Matrice_subset_means)
+Matrice_subset_means_T
+Matrice_Log<- apply(Matrice_subset_means_T,2,log)
+Matrice_Log
+Groupes <- Matrice$Groupes
+Groupes
+
+#rajouter nom individus (pas fonctionner)
+#Scatterplot : Vérifier les points abbérants
+windows()
+pairs(Matrice_subset[,1:4], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+text(Matrice_subset[,1:4], labels = Nom,col= as.numeric(Groupes)) #Pas fonctionné de mettre les noms des individus
+pairs(Matrice_subset[,5:8], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[,9:12], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[,13:16], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[,17:20], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[,21:24], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[,25:28], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[,29:32], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[,33:36], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[,37:41], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+
+#Scatterplot : Sur Matrice_log 
+#Permettant de remettre à l'échelle et donc de limiter les outliers
+windows()
+pairs(Matrice_Log[,1:4], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+text(Matrice_Log[,1:4], labels = Nom,col= as.numeric(Groupes)) #Pas fonctionné de mettre les noms des individus
+pairs(Matrice_Log[,5:8], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_Log[,9:12], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_Log[,13:16], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_Log[,17:20], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_Log[,21:24], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_Log[,25:28], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_Log[,29:32], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_Log[,33:36], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_Log[,37:41], col= as.numeric(Groupes), pch=as.character(Groupes),bty = "o", cex= 0.5, asp=1)
+
+#Scatterplot sans Nv_350_1736_COI
+windows()
+pairs(Matrice_subset[c(-26),][,1:4], col= as.numeric(Groupes), pch=19,bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[c(-26),][,5:8], col= as.numeric(Groupes), pch=19,bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[c(-26),][,9:12], col= as.numeric(Groupes), pch=19,bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[c(-26),][,13:16], col= as.numeric(Groupes), pch=19,bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[c(-26),][,17:20], col= as.numeric(Groupes), pch=19,bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[c(-26),][,21:24], col= as.numeric(Groupes), pch=19,bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[c(-26),][,25:28], col= as.numeric(Groupes), pch=19,bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[c(-26),][,29:32], col= as.numeric(Groupes), pch=19,bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[c(-26),][,33:36], col= as.numeric(Groupes), pch=19,bty = "o", cex= 0.5, asp=1)
+pairs(Matrice_subset[c(-26),][,37:41], col= as.numeric(Groupes), pch=19,bty = "o", cex= 0.5, asp=1)
+
+##################### Analyses multivariées##################### 
+################### Fichier Excel : Matrice (Matrice_subset)################### 
+################ Données quantitatives sans NA non transformées (ni moy ni log ni division)################ 
+
+######Analyses en Composantes Principales######
+#ACP des variables
+#Matrice_subset = données quantitatives sans NA non transformées (ni moy ni log ni division)
+APC1 <- prcomp(Matrice[,-c(1:3)], scale. = F)
+APC1$x[,1:5]
+#APC1 = ACP de l'ensemble des variables du jeux de donnees (L et W specimens)
+ACP_Var = PCA(Matrice_subset, scale.unit=F,graph=T, axes=c(1,2))
+# Liste des individus et des variables du jeux de données brutes
+ACP_Var
+summary(ACP_Var)
+
+#Matrice_subset_Taille = Log shape ratio
+Matrice_subset_Taille <- (Matrice_subset/Matrice_subset_means)
+
+# Effectuer l'ACP des corrélations sur la matrice scale.unit = FALSE (ne pas standardiser les données)
+ACP_Var_T <- PCA(Matrice_subset_Taille, scale.unit = FALSE, graph = TRUE, axes = c(1, 2))
+# Liste des individus et des variables du jeux de données logshape ratio
+ACP_Var_T
+#Afficher les valeurs propres et la contributions des axes factoriels
+ACP_Var_T$eig
+# Afficher les coordonnées des variables
+# Des 6 premières variables
+head(ACP_Var_T$var$coord)
+# De l'ensemble des variables
+ACP_Var_T$var$coord
+# Graphique des variables 
+fviz_pca_var(ACP_Var_T, col.var = "black")
+#Afficher les corrélations des variables - axes factoriels
+ACP_Var_T$var$cor
+#Qualiter de projection des variables
+# Des 6 premières variables
+head(ACP_Var_T$var$cos2)
+# De l'ensemble des variables
+ACP_Var_T$var$cos2
+#Qualité de la représentation : cos2 (square cosinus, coordonnées au carré)
+head(ACP_Var_T$var$cos2)
+windows()
+# Graphique de la représentation de cos2 selon les 5 dimmensions
+corrplot(ACP_Var_T$var$cos2, is.corr = FALSE)
+# Diagramme des barres de variables cos2 avec la fonction fviz_cos2() (package factoextra)
+# Total cos2 des variables, dimmension 1 et 2
+windows()
+fviz_cos2(ACP_Var_T, choice = "var",axes = 1:2)
+#cos 2 élevé des variables Hinterad Dprox sur CP1 CP2
+#montrer en couleur ou transparence
+fviz_pca_var(ACP_Var_T, col.var = "cos2", gradient.cols= c("#00AFBB", "#E7B800", "#FC4E07"), repel = TRUE)
+fviz_pca_var(ACP_Var_T, alpha.var = "cos2")
+
+# Contribution des variables aux axes factoriels
+#PC1
+# 10 variables
+fviz_contrib(ACP_Var_T, choice = "var", axes = 1, top = 10)
+# Ensemble des variables
+fviz_contrib(ACP_Var_T, choice = "var", axes = 1)
+
+#PC2
+fviz_contrib(ACP_Var_T, choice = "var", axes = 2, top = 10)
+#Contribution total
+fviz_contrib(ACP_Var_T, choice = "var", axes = 1:2, top = 10)
+#PC3
+fviz_contrib(ACP_Var_T, choice = "var", axes = 3, top = 10)
+#ligne pointillée rouge indique la contribution moyenne attendue
+#Variables Hinterad Dprox bien supériéur à la ligne => important qui contribue aux composantes 1 et 2
+#Qualité de projection des variables
+# Des 6 premières variables
+head(ACP_Var_T$var$contrib)
+# De l'ensemble des variables
+ACP_Var_T$var#Qualité de projection des variables
+# Des 6 premières variables
+head(ACP_Var_T$var$contrib)
+# Graphique de la contribution des variables selon les 5 dimmensions
+corrplot(ACP_Var_T$var$contrib, is.corr = FALSE)
+# Coordonnées des individus dans le plan factoriel
+ACP_Var_T$ind$coord
+# Qualité de représentations des individus
+ACP_Var_T$ind$cos2
+# Contribution des individus aux axes factoriels
+ACP_Var_T$ind$contrib
+# Le poids des variables
+ACP_Var_T$call$col.w
+# Le poids des individus
+ACP_Var_T$call$row.w
+#Télécharger sous format .txt le résultat 
+write.infile(ACP_Var_T, file="pca_result.txt", sep="\t")
+# Extraire les valeurs propres/variances des principaux composants
+eig.val <- get_eigenvalue(ACP_Var_T)
+eig.val
+#la somme de toutes les valeurs propres donne une variance totale de 10.
+#variance.percent est la proportion de variance expliquée
+#dim 1 : 24% cumulée à dim 2 (22%) = donne 47%
+#la variance cumulée : 73% en cumulant les 5 dimmensions*
+#Les 5 premières composantes principales expliquent 73% de la variation
+#C'est un pourcentage acceptable
+#Autre méthode pour déterminer le nombre de composants principaux
+#Une autre méthode pour déterminer le nombre de composants principaux est de regarder un tracé d'écran, qui est le tracé de valeurs propres ordonnées du plus grand au plus petit. Le nombre de composantes est déterminé à l'au-delà duquel les valeurs propres restantes sont toutes relativement faibles et de taille comparable (Jollife 2002, Peres-Neto, Jackson et Somers (2005)).
+#DONC : 
+# Afficher les variances expliquées :la fonction "fviz_screeplot"(package factoextra)
+#graphique de l'éboulis montrant la variance expliquée par chaque composante principale
+fviz_screeplot(ACP_Var_T, addlabels = TRUE, ylim = c(0, 100), linecolor="black",barcolor="firebrick", barfill="firebrick")
+#la première composante explique 24%. 
+#S'arrêter aux 5 premières (ou 4 car la CP5:5.2%)
+
+# Description de la dimmension
+ACP.desc <- dimdesc(ACP_Var_T, axes = c(1,2), proba = 0.05)
+# Description  dimension 1
+ACP.desc$Dim.1
+# Description  dimension 2
+ACP.desc$Dim.2
+
+# Contribution des individus (cos2)
+fviz_pca_ind(ACP_Var_T, col.ind = "cos2", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Avoid text overlapping (slow if many points)
+)
+# Taille des points
+fviz_pca_ind(ACP_Var_T, pointsize = "cos2", 
+             pointshape = 21, fill = "blue",
+             repel = TRUE # Avoid text overlapping (slow if many points)
+)
+# Tailles des points et couleur 
+fviz_pca_ind(ACP_Var_T, col.ind = "cos2", pointsize = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Avoid text overlapping (slow if many points)
+)
+
+
+# Diagramme de barres de la qualité de réprésentation de cos2 des individus sur la carte des facteurs
+# Dimmension 1
+windows()
+fviz_cos2(ACP_Var_T, choice = "ind")
+# Contribution total des dimmensions 1 et 2
+fviz_contrib(ACP_Var_T, choice = "ind", axes = 1:2)
+
+fviz_pca_ind(ACP_Var_T, col.ind = Groupes,
+             gradient.cols = c(as.numeric(Groupes)),
+             legend.title = "Cont.Var")
+
+# Afficher un biplot de l'ACP : Biplot combinant les individus et les variables sur les axes principaux
+fviz_pca_biplot(ACP_Var_T, repel = TRUE,
+                col.var = "blue", # Couleur des variables
+                col.ind = "red"   # Couleur des individus
+)
+
+fviz_pca_biplot(ACP_Var_T, repel = TRUE,
+                col.var = as.character(Groupes), # Couleur des variables
+                col.ind = "red"   # Couleur des individus
+)
+#### Pas fonctionné 
+var_cor <- ACP_Var_T$var$cor
+
+# Afficher le tableau des corrélations dans la console
+print(var_cor)
+
+# Exporter le tableau des corrélations en un fichier .csv
+write.csv(var_cor, file = "correlations_variables_ACP.csv", row.names = TRUE)
+
+#ACP des individus
+fviz_pca_ind(ACP_Var_T, col.ind= Groupes,
+             gradient.cols = c(as.numeric(Groupes)),
+             title = "Analyses en composantes principales",
+             subtitle = "Individus",
+             caption = "Source: factoextra",
+             legend.title = "Groupes", legend.position = "topright",
+)
+
+######Analyses Discriminantes Lineaires des groupes des log shape ratio ######
+ldACP<-predict(lda(APC1$x[,1:30],grouping= Groupes),APC1$x[,1:30],CV=T)
+ldACP
+table(Groupes,ldACP$class)
+Table <- table(Groupes,ldACP$class)
+Table
+# Exporter le tableau en un fichier .csv
+write.csv(Table, file = "LDA_results.csv", row.names = TRUE)
+# proportion de classifications exactes
+diag(prop.table(Table, 1))
+diagpourcent <- diag(prop.table(Table, 1))
+# Exporter le pourcentage en un fichier .csv
+write.csv(diagpourcent, file = "LDA_pourcentages.csv", row.names = TRUE)
+
+## Axe 1 et 2 ##
+plot(ldACP$x[,1:2],col=as.numeric(Groupes), pch=19, xlab = "LD1", ylab="LD2", main = "Analyse discriminante linéaire sur l'axe 1 et 2")
+legend(x="bottomright", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
+## Axe 2 et 3 ##
+plot(ldACP$x[,2:3],col=as.numeric(Groupes), pch=19,xlab = "LD2", ylab="LD3", main = "Analyse discriminante linéaire sur l'axe 2 et 3")
+legend(x="topleft", legend=c("1:G51", "2:G12", "3:G135","4:G20","5:G78","6:G8","7:G23"), col = c("black","firebrick2","chartreuse3","skyblue","cadetblue1","deeppink3","gold1"),pch=c(16),bty="n",bg=NA, cex=0.8)
